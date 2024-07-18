@@ -59,8 +59,11 @@ export default forwardRef<HTMLLIElement[] | null[], DropDownMenuProps>(function 
             key={option.code}
             data-option-value={option.code}
             aria-label={option.name}
+            // data-testid={option.name}
             ref={(el) => {
-              (ref as MutableRefObject<(HTMLLIElement | null)[]>).current![index] = el;
+              if (ref && "current" in ref && ref.current) {
+                (ref as MutableRefObject<(HTMLLIElement | null)[]>).current[index] = el;
+              }
             }}
             onMouseDown={() => handleMouseDown(option.name, option.code)}
             onMouseMove={() => handleMouseMove(index)}

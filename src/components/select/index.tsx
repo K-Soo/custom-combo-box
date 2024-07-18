@@ -62,7 +62,6 @@ export default function Select({ options, onChange, value, setSelectedValue }: S
       case "Enter":
         if (dropdownItemRefs.current[state.highlightedIndex]) {
           const { innerText } = dropdownItemRefs.current[state.highlightedIndex]!;
-          console.log("innerText: ", innerText);
           const dataset = dropdownItemRefs.current[state.highlightedIndex]?.dataset;
           const optionValue = dataset?.optionValue ?? "";
           setSelectedValue(innerText);
@@ -118,7 +117,7 @@ export default function Select({ options, onChange, value, setSelectedValue }: S
     }
   };
 
-  // Close아이콘 클릭으로 입력 필드를 지웁니다.
+  // 취소 아이콘 클릭으로 입력 필드를 지웁니다.
   const handleRemoveInputValue = useCallback(() => {
     dispatch({ type: "SET_HIGHLIGHTED_INDEX", index: -1 });
     setSelectedValue("");
