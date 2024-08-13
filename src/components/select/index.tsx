@@ -1,10 +1,9 @@
-import { useEffect, KeyboardEvent, useRef, ChangeEvent, useCallback } from "react";
+import { useEffect, KeyboardEvent, useRef, ChangeEvent, useCallback, useState } from "react";
 import ArrowIcon from "../../icons/ArrowIcon";
 import CloseIcon from "../../icons/CloseIcon";
 import DropDownMenu from "../dropDownMenu";
 import { useSelectState } from "../../hooks/useSelectState";
 import { Options } from "../../types";
-import useFetchOptions from "../../hooks/useFetchOptions";
 import "./select.css";
 
 interface SelectProps {
@@ -18,7 +17,39 @@ const INIT_PREV_STATE_VALUE = { name: "", optionValue: "" };
 
 export default function Select({ options, onChange, value, setSelectedValue }: SelectProps) {
   const { state, dispatch } = useSelectState();
-  const { loadState, allSuggestions, filteredSuggestions, placeholderText, setFilteredSuggestions } = useFetchOptions(options, dispatch);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<Options>([]);
+  const [allSuggestions, setAllSuggestions] = useState<Options>([]);
+  const [loadState, setLoadState] = useState({ isLoading: false, isError: false });
+
+  const placeholderText = loadState.isError ? "잠시 후 다시 시도해주세요" : loadState.isLoading ? "로딩 중..." : "선택";
+
+  const updateSuggestions = (data: Options) => {
+    setAllSuggestions(data);
+    setFilteredSuggestions(data);
+    dispatch({ type: "SET_LAYOUT_UPDATED", layoutUpdated: false });
+  };
+
+  const fetchData = async () => {
+    setLoadState((prev) => ({ ...prev, isLoading: true }));
+    try {
+      const data = await (options as () => Promise<Options>)();
+      if (!data) throw new Error();
+      updateSuggestions(data);
+    } catch (error) {
+      setLoadState((prev) => ({ ...prev, isError: true }));
+    } finally {
+      setLoadState((prev) => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  useEffect(() => {
+    if (typeof options === "function") {
+      fetchData();
+      return;
+    }
+    updateSuggestions(options);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [options]);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownItemRefs = useRef<HTMLLIElement[] | null[]>([]);
@@ -73,18 +104,16 @@ export default function Select({ options, onChange, value, setSelectedValue }: S
   };
 
   // 입력 변경에 따라 제안 목록을 필터링합니다.
-  const handleChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      if (!state.isOpenDropDownMenu) {
-        dispatch({ type: "SET_IS_OPEN_DROP_DOWN_MENU", isOpenDropDownMenu: true });
-      }
-      const query = event.target.value.toLowerCase();
-      setFilteredSuggestions(allSuggestions.filter((option) => option.name.toLowerCase().includes(query)));
-      onChange && onChange(event);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [allSuggestions, onChange, state.isOpenDropDownMenu]
-  );
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    if (!state.isOpenDropDownMenu) {
+      // dispatch({ type: "SET_IS_OPEN_DROP_DOWN_MENU", isOpenDropDownMenu: true });
+    }
+    const query = event.target.value.toLowerCase();
+    const data = allSuggestions.filter((option) => option.name.toLowerCase().includes(query));
+    console.log("data: ", data);
+    setFilteredSuggestions(data);
+    onChange && onChange(event);
+  };
 
   // 입력 필드에 포커스가 갔을 때 처리합니다.
   const onFocus = () => {
